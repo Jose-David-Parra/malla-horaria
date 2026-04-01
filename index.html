@@ -102,6 +102,20 @@ tr.tot td.s0,tr.tot td.s1{background:var(--green-d);color:#fff;font-size:12.5px}
 .te{display:inline-block;min-width:36px;padding:1px 3px;border-radius:3px;font-family:Consolas,monospace;font-size:10.5px;font-weight:500;cursor:text;transition:background .1s;text-align:center;color:var(--text)}
 .te:hover{background:rgba(28,124,84,.1)}.te:focus{outline:2px solid var(--green);background:#fff}
 .te.empty{color:#ccc}
+.time-cell{display:inline-flex;align-items:center;gap:3px;cursor:pointer;border-radius:5px;padding:2px 6px;transition:background .12s;font-family:Consolas,monospace;font-size:10.5px;font-weight:500;color:var(--text);min-width:85px;justify-content:center}
+.time-cell:hover{background:rgba(28,124,84,.1)}
+.time-cell.empty{color:#bbb;font-size:10px;font-family:inherit;font-weight:400}
+.tc-arr{color:#ccc;font-size:9px;margin:0 1px}
+.time-popup{position:fixed;z-index:9998;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.15);padding:14px;display:flex;flex-direction:column;gap:10px;animation:mIn .12s ease;min-width:185px}
+.tp-row{display:flex;align-items:center;gap:8px}
+.tp-lbl{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;width:48px;flex-shrink:0}
+.tp-input{flex:1;border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;font-family:Consolas,monospace;font-weight:600;color:var(--text);outline:none;cursor:pointer}
+.tp-input:focus{border-color:var(--green)}
+.tp-btns{display:flex;gap:6px}
+.tp-ok{flex:1;background:var(--green);color:#fff;border:none;border-radius:7px;padding:8px;font-size:12px;font-family:inherit;font-weight:700;cursor:pointer}
+.tp-ok:hover{background:var(--green-l)}
+.tp-clr{background:#f5f5f5;color:var(--muted);border:none;border-radius:7px;padding:8px 10px;font-size:12px;font-family:inherit;cursor:pointer}
+.tp-clr:hover{background:#ffe5e5;color:var(--red)}
 /* Calculated (read-only) number cells */
 .calc-cell{display:inline-block;width:30px;font-family:Consolas,monospace;font-size:11px;font-weight:600;text-align:center;color:var(--text);cursor:default}
 /* Legacy .ne kept for total row */
@@ -223,7 +237,7 @@ tr.tot td.s0,tr.tot td.s1{background:var(--green-d);color:#fff;font-size:12.5px}
 
 <script>
 // ── TIENDA CATALOG (names + employees only, no schedule) ──
-const CATALOG = {"1041": {"code": 1041, "name": "Unicentro Cali", "region": "Region 1", "employees": ["GERENTE 1", "NATALIA BARRERO", "DANIELA URREGO", "CATALINA DUARTE", "ANDREA JIMENEZ", "AHSLYE", "MARIA PILAR LEON", "JASON", "OSCAR", "ASESOR 9"]}, "1042": {"code": 1042, "name": "Plaza Imperial", "region": "Region 1", "employees": ["ERIKA CAICEDO", "BLANCA LEON", "YICELA ANGEL", "ALEJANDRO MALABER", "VANESSA TORRES", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1073": {"code": 1073, "name": "Viva Tunja", "region": "Region 1", "employees": ["ANGIE PAOLA MURILLO BASTIDAS", "JOHANA OLIVIA  GIL", "PAULA FERNANDA NIÑO", "PAULA CAMILA GOMEZ", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1028": {"code": 1028, "name": "Unicentro", "region": "Region 1", "employees": ["KAREN YESENIA QUICENO NEIRA", "LAURA DANIELA PERILLA GARCIA", "LAURA NATALY TORRES GUTIERREZ", "SERGIO ANDRES RUIZ AMADOR", "SARA SOFIA ZARAMA RODRIGUEZ", "ERIKA TATIANA QUIÑONES RIVEROS", "CAMILO ANDRES GIL RODRIGUEZ", "ANDRES PINZON BAQUERO", "ASESOR 9", "ASESOR 10"]}, "1013": {"code": 1013, "name": "Americas", "region": "Region 1", "employees": ["GERENTE 1", "ASESOR 2", "ASESOR 3", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1067": {"code": 1067, "name": "Viva Villavo", "region": "Region 1", "employees": ["JAVIER ENRIQUE ORDUÑA", "YURY ANDREA GOMEZ", "FANNY AMPARO MENZA", "LINDA YAJAIRA SANDOVAL", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1014": {"code": 1014, "name": "Kiosko Fontanar", "region": "Region 1", "employees": ["GERENTE 1", "LAURA SIERRA", "CRISTINA CLAVIJO", "PAULA GONZALEZ", "JULIETH", "CAMILO RODRIGUEZ", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1003": {"code": 1003, "name": "Centro Chía", "region": "Region 1", "employees": ["LAURA VIVIANA PATIÑO MORENO", "LINA MARIA CORTES", "ALEXANDRA CAROLINA QUIOZ", "KENNETH JENEL LEON", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1069": {"code": 1069, "name": "Santa Lucia", "region": "Region 1", "employees": ["GERENTE 1", "ASESOR 1", "ASESOR 2", "ASESOR 3", "ASESOR 4", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1010": {"code": 1010, "name": "Andino", "region": "Region 1", "employees": ["MELISSA DIAZ", "BAYRON SALCEDO", "LIZETH", "NICOLLE", "SOFIA", "SANDRA", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1036": {"code": 1036, "name": "Unicentro Yopal", "region": "Region 1", "employees": ["CLAUDIA VIANET GARCIA CHAPARRO", "MARIA DEL PILAR BELLO DAZA", "YOLMAN FERNANDO ANZOLA RUIZ", "MARILYN GONZALEZ SANDOVAL", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1078": {"code": 1078, "name": "Unicentro Pasto", "region": "Region 3", "employees": ["GERENTE 1  ESTEBAN DE LA CRUZ", "ASESORA 1 PAOLA VILLAREAL", "ASESOR 2  ANGELA ORDOÑEZ", "ASESOR 3", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9"]}, "1049": {"code": 1049, "name": "Arkadia", "region": "Region 3", "employees": ["Katherin Melo Amaya", "kelly margarita Muñoz Fuentes", "kiara cristina Velazquez", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1077": {"code": 1077, "name": "San Nicolas", "region": "Region 3", "employees": ["Liliana Esther Marquez Romo", "Lizeth Garces Ramirez", "Alejandra Bedoya Ramírez", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1064": {"code": 1064, "name": "Mall Plaza Cali", "region": "Region 3", "employees": ["DIANA ALESA ALARCON CAICEDO", "DIEGO ALDANA", "YEISON MESA", "YULIETH GONZALEZ MAZO", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9"]}, "1027": {"code": 1027, "name": "Tesoro", "region": "Region 3", "employees": ["ANA ISABEL GARCIA", "LUISA FERNANDA GALLEGO", "SANDRA MONTOYA", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1055": {"code": 1055, "name": "Fabricato", "region": "Region 3", "employees": ["CRISTINA DOMICO", "JUAN JOSE HIGUITA", "MARILY HENAO", "Asesor 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1051": {"code": 1051, "name": "Jardín Plaza Cali", "region": "Region 3", "employees": ["GERENTE I ANDRES FEBRES", "KAREN RUIZ", "ALEJANDRA LOZADA", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1070": {"code": 1070, "name": "La Florida", "region": "Region 3", "employees": ["SARA GRISALES", "MARIANA ALVAREZ", "KELLIS LUNA", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1050": {"code": 1050, "name": "Oviedo", "region": "Region 3", "employees": ["LUISA MUÑOZ DUQUE", "SUSANA MONTOYA ESCOBAR", "MARIA JOSE AGUDELO", "ALEXANDRA BEDOYA", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1075": {"code": 1075, "name": "Santafe", "region": "Region 3", "employees": ["DEISY MORALES", "ORIANA QUINTERO GARRO", "MARIA ANGELICA SEJIN VERTEL", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1072": {"code": 1072, "name": "Mayorca", "region": "Region 3", "employees": ["GERENTE 1 JULIANA GARCIA VELASQUEZ", "ASESOR 2 ERIKA VAQUIRO BARRIOS", "ASESOR 3 SAUL ANDRES VARGAS ALZATE", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1021": {"code": 1021, "name": "Viva Envigado", "region": "Region 3", "employees": ["ASESOR 1 LINA PEREZ CHAVARRIA", "ASESOR 2 VALERIA CARVAJAL PINEDA", "ASESOR 3 MARIANA GOMEZ", "ASESOR 4 VALENTINA GARCIA", "SARA TORO", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1033": {"code": 1033, "name": "Buenavista Barranquilla", "region": "Region 4", "employees": ["SINDY GISELLE TEHERAN VALENCIA", "YUNARIS PARODIS NAVARRO", "GISELLE DEL CARMEN RAMOS MORALES", "LINA MARCELA SILVA DIAZ", "YOCELIN VANESSA MEZA MARTINEZ", "LUIS ALFONSO GONZALEZ ANGULO", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1047": {"code": 1047, "name": "Jardín Plaza", "region": "Region 4", "employees": ["KATHERINE ANTE SALDARRIAGA", "KAREN LISBETH PABÓN FERRER", "YANIN DENISSE ATUESTA", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1068": {"code": 1068, "name": "Portal del Quindio", "region": "Region 4", "employees": ["SARAY PAJARO", "ROCIO TELLEZ", "TATIANA MARIN", "ASESOR 4", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1071": {"code": 1071, "name": "Fundadores", "region": "Region 4", "employees": ["ALEJANDRA ORTIZ", "KAROLAIN GIL", "SOFIA LOPEZ", "KEILY DAHIANA MARIN", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1053": {"code": 1053, "name": "Arboleda", "region": "Region 4", "employees": ["PAOLA RESTREPO", "HAROLD HURTADO", "MARITZA MONTOYA", "YESSICA CRUZ", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1056": {"code": 1056, "name": "Multiplaza", "region": "Region 4", "employees": ["LUISA FERNANDA DÍAZ", "LAURA ALEJANDRA DONCEL", "ELEINYS ACOSTA", "ANDRES RABA", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1024": {"code": 1024, "name": "Gran Estación", "region": "Region 4", "employees": ["DARWIN MOLINA", "LAURA MAYERLY GONZALEZ BELTRAN", "LILI JOHANA RUEDA", "DANIELA ARENALES HERNANDEZ", "ELOY JESUS ROJANO PAREJO", "ANGELA MAYERLY MURILLO ONATRA", "LUIS FERNANDO FANDIÑO LOZANO", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1032": {"code": 1032, "name": "Kiosko la estación", "region": "Region 4", "employees": ["DIANA PATRICIA RODRIGUEZ", "JENNIFER ALEXANDRA HOYOS", "ANGIE PAOLA SANTA GARIBELLO", "MARIA ALEJANDRA MORENO PARRA", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1045": {"code": 1045, "name": "Viva barranquilla", "region": "Region 4", "employees": ["LORAINE POMARICO", "MARIANELLA PADILLA", "YENNIFER MEJIA", "SHARIN ALEMAN", "ASESOR 5", "ASESOR 6", "ASESOR 7", "ASESOR 8", "ASESOR 9", "ASESOR 10"]}, "1058": {"code": 1058, "name": "San Diego", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1060": {"code": 1060, "name": "Chipichape", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}};
+const CATALOG = {"1073": {"code": 1073, "name": "Viva Tunja", "region": "Region 1", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1028": {"code": 1028, "name": "Unicentro", "region": "Region 1", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1069": {"code": 1069, "name": "Santa Lucia", "region": "Region 1", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1036": {"code": 1036, "name": "Unicentro Yopal", "region": "Region 1", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1001": {"code": 1001, "name": "Titán Plaza", "region": "Region 1", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1067": {"code": 1067, "name": "Viva Villao", "region": "Region 1", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1014": {"code": 1014, "name": "Kiosko Fontanar", "region": "Region 1", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1003": {"code": 1003, "name": "Centro Chía", "region": "Region 1", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1013": {"code": 1013, "name": "Americas", "region": "Region 1", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1010": {"code": 1010, "name": "Andino", "region": "Region 1", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1042": {"code": 1042, "name": "Plaza Imperial", "region": "Region 1", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1012": {"code": 1012, "name": "Salitre Plaza", "region": "Region 2", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1006": {"code": 1006, "name": "Santafé Bogotá", "region": "Region 2", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1046": {"code": 1046, "name": "Santa Ana", "region": "Region 2", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1002": {"code": 1002, "name": "Hayuelos", "region": "Region 2", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1066": {"code": 1066, "name": "Plaza Central", "region": "Region 2", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1040": {"code": 1040, "name": "Diver Plaza", "region": "Region 2", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1043": {"code": 1043, "name": "Mall Plaza Bogotá", "region": "Region 2", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1025": {"code": 1025, "name": "Colina", "region": "Region 2", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1004": {"code": 1004, "name": "Centro Mayor", "region": "Region 2", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1044": {"code": 1044, "name": "Plaza Claro", "region": "Region 2", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1011": {"code": 1011, "name": "Galerías", "region": "Region 2", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1049": {"code": 1049, "name": "Arkadia", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1041": {"code": 1041, "name": "Unicentro Cali", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1070": {"code": 1070, "name": "La Florida", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1064": {"code": 1064, "name": "Mall Plaza Cali", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1051": {"code": 1051, "name": "Jardín Plaza Cali", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1021": {"code": 1021, "name": "Viva Envigado", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1058": {"code": 1058, "name": "San Diego", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1060": {"code": 1060, "name": "Chipichape", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1072": {"code": 1072, "name": "Mayorca", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1055": {"code": 1055, "name": "Fabricato", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1075": {"code": 1075, "name": "Santafé Medellín", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1027": {"code": 1027, "name": "Tesoro", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1050": {"code": 1050, "name": "Oviedo", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1078": {"code": 1078, "name": "Kiosko Unicentro Pasto", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1077": {"code": 1077, "name": "San Nicolás", "region": "Region 3", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1054": {"code": 1054, "name": "Alegra", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1047": {"code": 1047, "name": "Jardín Plaza Cúcuta", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1045": {"code": 1045, "name": "Viva Barranquilla", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1053": {"code": 1053, "name": "Arboleda", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1033": {"code": 1033, "name": "Buenavista Barranquilla", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1048": {"code": 1048, "name": "La Quinta Cabecera", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1076": {"code": 1076, "name": "Alamedas Montería", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1026": {"code": 1026, "name": "Caracolí", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1071": {"code": 1071, "name": "Fundadores", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1024": {"code": 1024, "name": "Gran Estación K", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1068": {"code": 1068, "name": "Portal del Quindío", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1032": {"code": 1032, "name": "Kiosko La Estación", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1074": {"code": 1074, "name": "Cacique BGA", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}, "1056": {"code": 1056, "name": "Multiplaza", "region": "Region 4", "employees": ["Gerente 1", "Asesor 1", "Asesor 2", "Asesor 3", "Asesor 4"]}};
 
 // ── CONTRACT TYPES ──
 // EMP_CONTRACT: { tiendaCode: { empIdx: 33|44 } }  default=44
@@ -533,19 +547,15 @@ function buildCellContent(date, empIdx) {
   const sk = getSpecKey(emp.ap);
   if (sk) {
     const style = PILL[sk] || 'background:#f0fdf4;color:#166534';
-    return `<span class="sp" style="${style}" onclick="openNovMenu(event,'${date}',${empIdx})" title="Click para cambiar">${sk}</span>`;
+    return `<span class="sp" style="${style}" onclick="openNovMenu(event,'${date}',${empIdx})">${sk}</span>`;
   }
   const ap = emp.ap || '', ci = emp.ci || '';
-  return `<span class="te ${ap ? '' : 'empty'}" contenteditable="true"
-    data-date="${date}" data-emp="${empIdx}" data-field="ap" data-orig="${ap}"
-    onblur="commitTime(this)" onkeydown="timeKey(event,this)"
-    onclick="event.stopPropagation()" title="Entrada">${ap || '--:--'}</span>
-    <span style="color:#ccc;font-size:10px;margin:0 1px">→</span>
-    <span class="te ${ci ? '' : 'empty'}" contenteditable="true"
-    data-date="${date}" data-emp="${empIdx}" data-field="ci" data-orig="${ci}"
-    onblur="commitTime(this)" onkeydown="timeKey(event,this)"
-    onclick="event.stopPropagation()" title="Salida">${ci || '--:--'}</span>
-    <span class="nb" onclick="openNovMenu(event,'${date}',${empIdx})" title="Marcar novedad">≡</span>`;
+  const hasTime = !!(ap && ci);
+  const inner = hasTime
+    ? `<b>${ap}</b><span class="tc-arr">&#8594;</span><b>${ci}</b>`
+    : `+ Agregar horario`;
+  return `<span class="time-cell ${hasTime?'':'empty'}" onclick="openTP(event,'${date}',${empIdx})">${inner}</span>
+    <span class="nb" onclick="openNovMenu(event,'${date}',${empIdx})">&#8801;</span>`;
 }
 
 function refreshCell(date, empIdx) {
@@ -931,11 +941,172 @@ function exportCSV() {
   a.download = `malla_${CATALOG[sel].name.replace(/\s/g,'_')}.csv`; a.click();
 }
 
+
+// ── TIME POPUP ──
+let _tpCtx = null;
+
+function openTP(ev, date, empIdx) {
+  ev.stopPropagation();
+  const emp = getEmp(sel, date, empIdx);
+  _tpCtx = { date, empIdx };
+  const old = document.getElementById('timePopup');
+  if (old) old.remove();
+  const apVal = (emp.ap && /^\d/.test(emp.ap)) ? emp.ap : '';
+  const ciVal = (emp.ci && /^\d/.test(emp.ci)) ? emp.ci : '';
+  const popup = document.createElement('div');
+  popup.id = 'timePopup';
+  popup.className = 'time-popup';
+  popup.innerHTML =
+    '<div class="tp-row"><span class="tp-lbl">Entrada</span><input class="tp-input" id="tp-ap" type="time" value="' + apVal + '"></div>' +
+    '<div class="tp-row"><span class="tp-lbl">Salida</span><input class="tp-input" id="tp-ci" type="time" value="' + ciVal + '"></div>' +
+    '<div class="tp-btns"><button class="tp-clr" onclick="tpClear()">Borrar</button><button class="tp-ok" onclick="tpConfirm()">✓ Confirmar</button></div>';
+  document.body.appendChild(popup);
+  const rect = ev.currentTarget.getBoundingClientRect();
+  let top = rect.bottom + 5, left = rect.left;
+  if (top + 175 > window.innerHeight) top = rect.top - 175;
+  if (left + 195 > window.innerWidth) left = window.innerWidth - 200;
+  popup.style.top = top + 'px';
+  popup.style.left = left + 'px';
+  const apEl = document.getElementById('tp-ap');
+  const ciEl = document.getElementById('tp-ci');
+  apEl.addEventListener('change', () => setTimeout(() => ciEl.focus(), 80));
+  ciEl.addEventListener('keydown', e => { if (e.key === 'Enter') tpConfirm(); });
+  apEl.focus();
+}
+
+function tpConfirm() {
+  if (!_tpCtx) return;
+  const ap = document.getElementById('tp-ap').value || '';
+  const ci = document.getElementById('tp-ci').value || '';
+  applyTimeEdit(_tpCtx.date, _tpCtx.empIdx, ap, ci);
+  tpClose();
+}
+
+function tpClear() {
+  if (!_tpCtx) return;
+  applyTimeEdit(_tpCtx.date, _tpCtx.empIdx, '', '');
+  tpClose();
+}
+
+function tpClose() {
+  const p = document.getElementById('timePopup');
+  if (p) p.remove();
+  _tpCtx = null;
+}
+
+function applyTimeEdit(date, empIdx, ap, ci) {
+  const emp = getEmp(sel, date, empIdx);
+  emp.ap = ap; emp.ci = ci;
+  const calc = (ap && ci) ? calcHours(ap, ci, date) : null;
+  if (calc) {
+    emp.hl = calc.hl; emp.hlOrd = calc.hlOrd;
+    emp.rn = calc.rn > 0 ? calc.rn : '';
+    emp.rnd = calc.rnd > 0 ? calc.rnd : '';
+    emp.esDomingo = calc.esDomingo || false;
+    emp.esFestivo = calc.esFestivo || false;
+    emp.hdom = calc.esDomingo ? calc.hl : '';
+    emp.hfes = calc.esFestivo ? calc.hl : '';
+    emp.hexor = ''; emp.hexdf = '';
+  } else {
+    emp.hl=''; emp.hlOrd=''; emp.rn=''; emp.rnd=''; emp.hdom=''; emp.hfes='';
+    emp.esDomingo=false; emp.esFestivo=false; emp.hexor=''; emp.hexdf='';
+  }
+  refreshCell(date, empIdx);
+  refreshRowCells(date, empIdx);
+  refreshSubtotals();
+  scheduleSave();
+}
+
+
+function refreshSubtotals() {
+  if (!sel || view !== 'malla') return;
+  const df = document.getElementById('dfrom').value;
+  const dt = document.getElementById('dto').value;
+  const ei = activeEmps(sel);
+  const calendar = buildCalendar(df, dt);
+
+  calendar.forEach(week => {
+    const wid = `w${week.year}w${week.weekNum}`;
+    const wsubRow = document.querySelector(`tr.wsub.week-${wid}`);
+    if (!wsubRow) return;
+
+    // Recalculate week totals
+    const wTot = {};
+    ei.forEach(e => { wTot[e] = {hl:0,hlOrd:0,rn:0,rnd:0,hdom:0,hfes:0}; });
+    week.days.forEach(day => {
+      ei.forEach(e => {
+        const emp = getEmp(sel, day.date, e);
+        if (getSpecKey(emp.ap)) return;
+        const rh = resolvedHours(sel, e, day.date);
+        wTot[e].hl    += n(emp.hl);
+        wTot[e].hlOrd += n(emp.hlOrd);
+        wTot[e].rn    += n(emp.rn);
+        wTot[e].rnd   += n(emp.rnd);
+        wTot[e].hdom  += rh.hdom;
+        wTot[e].hfes  += rh.hfes;
+      });
+    });
+
+    // Rebuild subtotal cells
+    const cells = wsubRow.querySelectorAll('td');
+    let cellIdx = 2; // skip Sem + Fecha cols
+    ei.forEach(e => {
+      const w = wTot[e];
+      const threshold = getContract(sel, e);
+      const exor = Math.max(0, w.hlOrd - threshold);
+      const vals = ['', w.hl||'–', w.rn||'–', w.rnd||'–', w.hdom||'–', w.hfes||'–', exor||'–', '–'];
+      vals.forEach((v, i) => {
+        if (cells[cellIdx + i]) cells[cellIdx + i].textContent = v;
+      });
+      cellIdx += 8;
+    });
+  });
+
+  // Refresh total row
+  const df2 = document.getElementById('dfrom').value;
+  const dt2 = document.getElementById('dto').value;
+  const et = calcTotals(sel, ei, df2, dt2);
+
+  // Recalculate ExOr weekly across all weeks
+  const weeklyExor = {};
+  ei.forEach(e => { weeklyExor[e] = 0; });
+  calendar.forEach(week => {
+    const wt = {};
+    ei.forEach(e => { wt[e] = {hlOrd:0}; });
+    week.days.forEach(day => {
+      ei.forEach(e => {
+        const emp = getEmp(sel, day.date, e);
+        if (!getSpecKey(emp.ap)) wt[e].hlOrd += n(emp.hlOrd);
+      });
+    });
+    ei.forEach(e => {
+      weeklyExor[e] += Math.max(0, wt[e].hlOrd - getContract(sel, e));
+    });
+  });
+
+  ei.forEach(e => {
+    const t = et[e];
+    const fields = {hl: t.hl, rn: t.rn, rnd: t.rnd, hdom: t.hdom, hfes: t.hfes, hexor: weeklyExor[e]||0, hexdf: 0};
+    Object.entries(fields).forEach(([f, v]) => {
+      const el = document.getElementById(`tot-${f}-${e}`);
+      if (el) el.textContent = v;
+    });
+  });
+
+  // Update summary cards
+  const t = storeTot(sel, ei, df2, dt2);
+  const totalExor = ei.reduce((s, e) => s + weeklyExor[e], 0);
+  ['hl','rn','rnd','hdom','hfes','hexor','hexdf'].forEach((k, i) => {
+    const el = document.getElementById('c-' + k);
+    if (el) el.textContent = [t.hl, t.rn, t.rnd, t.hdom, t.hfes, totalExor, 0][i];
+  });
+}
+
 document.addEventListener('click', e => {
   const m = document.getElementById('dropMenu');
   if (m.style.display !== 'none' && !m.contains(e.target)) closeMenu();
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMenu(); tpClose(); } });
 
 buildSB();
 
