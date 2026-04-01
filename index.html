@@ -951,6 +951,8 @@ function openTP(ev, date, empIdx) {
   _tpCtx = { date, empIdx };
   const old = document.getElementById('timePopup');
   if (old) old.remove();
+  window._tpJustOpened = true;
+  setTimeout(() => { window._tpJustOpened = false; }, 200);
   const apVal = (emp.ap && /^\d/.test(emp.ap)) ? emp.ap : '';
   const ciVal = (emp.ci && /^\d/.test(emp.ci)) ? emp.ci : '';
   const popup = document.createElement('div');
