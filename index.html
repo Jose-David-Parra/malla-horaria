@@ -148,6 +148,28 @@ tr.tot td.s0,tr.tot td.s1{background:var(--green-d);color:#fff}
 
 .hint{font-size:9.5px;color:var(--muted);padding:7px 0 3px}
 </style>
+
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+  const firebaseConfig = {
+  apiKey: "AIzaSyAtQRZgEV2fnfqNnhp_mc3haAVo5dSp7Sg",
+  authDomain: "boti-malla-horaria.firebaseapp.com",
+  projectId: "boti-malla-horaria",
+  storageBucket: "boti-malla-horaria.firebasestorage.app",
+  messagingSenderId: "267688040315",
+  appId: "1:267688040315:web:d2b2f5f09c6bb62d12cfde"
+};
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Expose to global scope
+  window._db = db;
+  window._firestoreFns = { doc, setDoc, getDoc, onSnapshot };
+  window._firebaseReady = true;
+  window.dispatchEvent(new Event('firebaseReady'));
+</script>
 </head>
 <body>
 
@@ -167,7 +189,7 @@ tr.tot td.s0,tr.tot td.s1{background:var(--green-d);color:#fff}
 
 <div class="main">
   <div class="topbar">
-    <div><div class="tit" id="topT">Selecciona una tienda</div><div class="tsub" id="topS">Malla horaria · Liquidación de horas</div></div>
+    <div><span id="saveStatus" style="font-size:10px;color:var(--green);margin-right:10px;transition:opacity .5s;opacity:0"></span><div class="tit" id="topT">Selecciona una tienda</div><div class="tsub" id="topS">Malla horaria · Liquidación de horas</div></div>
     <div class="topbar-r">
       <div class="df">📅
         <input type="date" id="dfrom" value="2026-03-01" onchange="render()"> →
@@ -763,6 +785,104 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
 
 buildSB();
+
+// ── FIREBASE SYNC ──
+let unsubscribe = null;
+let saveTimer = null;
+
+function waitFirebase(cb) {
+  if (window._firebaseReady) cb();
+  else window.addEventListener('firebaseReady', cb, { once: true });
+}
+
+// Save to Firestore with debounce (500ms after last edit)
+function scheduleSave() {
+  if (!sel) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => saveToFirebase(sel), 500);
+}
+
+async function saveToFirebase(tiendaCode) {
+  if (!window._db) return;
+  const { doc, setDoc } = window._firestoreFns;
+  const data = SCHED[tiendaCode] || {};
+  const empNames = EMP_NAMES[tiendaCode] || {};
+  try {
+    await setDoc(doc(window._db, 'malla', String(tiendaCode)), {
+      sched: JSON.stringify(data),
+      empNames: JSON.stringify(empNames),
+      updatedAt: Date.now()
+    });
+    showSaveStatus('✓ Guardado');
+  } catch(e) {
+    showSaveStatus('⚠ Error al guardar');
+    console.error(e);
+  }
+}
+
+function showSaveStatus(msg) {
+  let el = document.getElementById('saveStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.opacity = '1';
+  setTimeout(() => el.style.opacity = '0', 2000);
+}
+
+// Subscribe to real-time changes for selected tienda
+function subscribeToTienda(tiendaCode) {
+  if (unsubscribe) { unsubscribe(); unsubscribe = null; }
+  if (!window._db) { waitFirebase(() => subscribeToTienda(tiendaCode)); return; }
+  const { doc, onSnapshot } = window._firestoreFns;
+  unsubscribe = onSnapshot(doc(window._db, 'malla', String(tiendaCode)), (snap) => {
+    if (snap.exists()) {
+      const d = snap.data();
+      if (d.sched) {
+        const incoming = JSON.parse(d.sched);
+        // Merge into SCHED without overwriting local pending saves
+        if (!SCHED[tiendaCode]) SCHED[tiendaCode] = {};
+        Object.assign(SCHED[tiendaCode], incoming);
+      }
+      if (d.empNames) {
+        const names = JSON.parse(d.empNames);
+        if (!EMP_NAMES[tiendaCode]) EMP_NAMES[tiendaCode] = {};
+        Object.assign(EMP_NAMES[tiendaCode], names);
+      }
+      // Re-render if this is the currently selected tienda
+      if (sel == tiendaCode) render();
+    }
+    showSaveStatus('● En línea');
+  }, (err) => {
+    showSaveStatus('⚠ Sin conexión');
+  });
+}
+
+// Hook into selT to subscribe
+const _origSelT = selT;
+window.selT = function(code) {
+  _origSelT(code);
+  subscribeToTienda(code);
+};
+
+// Hook into updateCards to also save
+const _origUpdateCards = updateCards;
+window.updateCards = function() {
+  _origUpdateCards();
+  scheduleSave();
+};
+
+// Hook into saveName to also save
+const _origSaveName = saveName;
+window.saveName = function(el) {
+  _origSaveName(el);
+  scheduleSave();
+};
+
+// Init: if a tienda is already selected, subscribe
+waitFirebase(() => {
+  showSaveStatus('● En línea');
+  if (sel) subscribeToTienda(sel);
+});
+
 </script>
 </body>
 </html>
