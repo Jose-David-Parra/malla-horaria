@@ -84,18 +84,19 @@ tr.dom td{background:#fffdf0}
 tr.dom td.s0,tr.dom td.s1{background:#fffdf0}
 tr.dom:hover td{background:#fffbe0}
 tr.fest td{background:#fff8e0}
-tr.wsub td{background:#f0f9f5;font-weight:700;color:var(--green-d);font-size:11px;border-top:1px solid var(--green-xl);border-bottom:2px solid var(--green-xl)}
+tr.wsub td{background:#f0f9f5;font-weight:700;color:var(--green-d);font-size:11px;border-top:2px solid #b2dfc8;border-bottom:1px solid var(--border)}
 tr.wsub td.s0,tr.wsub td.s1{background:#f0f9f5;color:var(--green-d)}
 tr.wsub:hover td{background:#e5f5ed}
 tr.fest td.s0,tr.fest td.s1{background:#fff8e0}
 tr.fest:hover td{background:#fff3c4}
 /* Festivo label in date column */
 .fest-badge{display:inline-block;background:#f5a623;color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:3px;margin-left:3px;vertical-align:middle}
+.wsub-label{font-size:9px;color:var(--green);font-weight:700}
 tr.ws td{background:#ecf8f3;font-weight:700;color:var(--green-d);font-size:10.5px}
 tr.ws td.s0,tr.ws td.s1{background:#ecf8f3;color:var(--green-d)}
 tr.ws:hover td{background:#e0f4ea}
-tr.tot td{background:var(--green-d);color:#fff;font-weight:700;padding:6px 7px;font-size:12px}
-tr.tot td.s0,tr.tot td.s1{background:var(--green-d);color:#fff;font-size:12px}
+tr.tot td{background:var(--green-d);color:#fff;font-weight:700;padding:6px 7px;font-size:12.5px}
+tr.tot td.s0,tr.tot td.s1{background:var(--green-d);color:#fff;font-size:12.5px}
 
 /* Editable time */
 .te{display:inline-block;min-width:36px;padding:1px 3px;border-radius:3px;font-family:Consolas,monospace;font-size:10.5px;font-weight:500;cursor:text;transition:background .1s;text-align:center;color:var(--text)}
@@ -661,29 +662,17 @@ function renderMalla(empIdx, df, dt) {
     <th class="c-hexor">ExOr</th><th class="c-hexdf">ExDF</th>`).join('');
 
   let body = '';
-  const wst_local = {};
 
   calendar.forEach(week => {
     const wid = `w${week.year}w${week.weekNum}`;
-    // Week summary row — calculated dynamically
-    const wTot = {};
-    empIdx.forEach(e => { wTot[e] = {hl:0,rn:0,rnd:0,hdom:0,hfes:0,hexor:0,hexdf:0}; });
-    week.days.forEach(day => {
-      empIdx.forEach(e => {
-        const emp = getEmp(sel, day.date, e);
-        if (getSpecKey(emp.ap)) return;
-        wTot[e].hl   += n(emp.hl);   wTot[e].rn   += n(emp.rn);   wTot[e].rnd  += n(emp.rnd);
-        wTot[e].hdom += n(emp.hdom); wTot[e].hfes += n(emp.hfes); wTot[e].hexor+= n(emp.hexor); wTot[e].hexdf+= n(emp.hexdf);
-      });
-    });
-    // Week label header — clean, no numbers (numbers go in subtotal row below)
-    const firstDay = week.days[0], lastDay = week.days[week.days.length-1];
     const wLabel = `S${week.weekNum}`;
-    const emptyWeekCells = empIdx.map(() => `<td class="ediv" colspan="8"></td>`).join('');
+
+    // Week header row — just label + toggle
+    const emptyEmpCells = empIdx.map(() => `<td class="ediv" colspan="8"></td>`).join('');
     body += `<tr class="ws" onclick="twk('${wid}')" style="cursor:pointer" id="wrow-${wid}">
       <td class="s0">${wLabel}</td>
       <td class="s1"><span style="font-size:8.5px;opacity:.55" id="ar-${wid}">▼ días</span></td>
-      ${emptyWeekCells}</tr>`;
+      ${emptyEmpCells}</tr>`;
 
     // Day rows
     week.days.forEach(day => {
@@ -719,16 +708,27 @@ function renderMalla(empIdx, df, dt) {
         <td class="s1">${fmtDisplay(day.date)}${isFestivo(day.date)?'<span class="fest-badge">F</span>':''}</td>
         ${dayCells}</tr>`;
     });
-    // Weekly subtotal row — shown BELOW the days
-    const wSubCells = empIdx.map(e => { const w = wTot[e]; return `
+
+    // Subtotal row — sum of this week's days
+    const wTot = {};
+    empIdx.forEach(e => { wTot[e] = {hl:0,rn:0,rnd:0,hdom:0,hfes:0,hexor:0,hexdf:0}; });
+    week.days.forEach(day => {
+      empIdx.forEach(e => {
+        const emp = getEmp(sel, day.date, e);
+        if (getSpecKey(emp.ap)) return;
+        wTot[e].hl   += n(emp.hl);   wTot[e].rn   += n(emp.rn);   wTot[e].rnd  += n(emp.rnd);
+        wTot[e].hdom += n(emp.hdom); wTot[e].hfes += n(emp.hfes); wTot[e].hexor+= n(emp.hexor); wTot[e].hexdf+= n(emp.hexdf);
+      });
+    });
+    const subCells = empIdx.map(e => { const w = wTot[e]; return `
       <td class="ediv"></td>
       <td class="c-hl">${w.hl||'–'}</td><td class="c-rn">${w.rn||'–'}</td><td class="c-rnd">${w.rnd||'–'}</td>
       <td class="c-hdom">${w.hdom||'–'}</td><td class="c-hfes">${w.hfes||'–'}</td>
       <td class="c-hexor">${w.hexor||'–'}</td><td class="c-hexdf">${w.hexdf||'–'}</td>`; }).join('');
-    body += `<tr class="wsub">
-      <td class="s0" style="color:var(--green);font-size:10px">∑ ${g.sum ? g.sum.dia : 'Semana'}</td>
+    body += `<tr class="wsub week-${wid}">
+      <td class="s0" style="color:var(--green)">∑ ${wLabel}</td>
       <td class="s1" style="font-size:9px;color:var(--muted)">subtotal</td>
-      ${wSubCells}</tr>`;
+      ${subCells}</tr>`;
   });
 
   // TOTAL row
