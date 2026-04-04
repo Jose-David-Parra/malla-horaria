@@ -175,6 +175,7 @@ tr.tot td.s0,tr.tot td.s1{background:var(--green-d);color:#fff;font-size:12.5px}
 .contract-sel:focus{outline:none;border-color:var(--green)}
 </style>
 
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
 <script type="module">
   import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
   import { getFirestore, doc, setDoc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -226,6 +227,7 @@ tr.tot td.s0,tr.tot td.s1{background:var(--green-d);color:#fff;font-size:12.5px}
         <button class="vb" id="btnA" onclick="setView('asesores')">👤 Por asesor</button>
       </div>
       <button class="ebtn" onclick="exportCSV()">⬇ CSV</button>
+      <button class="ebtn" style="background:#145c3e" onclick="exportXLSX()">📊 Excel</button>
       <button class="ebtn" style="background:#0891b2" onclick="recalcAll()" title="Recalcular todas las horas guardadas con las reglas actuales">🔄 Recalcular</button>
     </div>
   </div>
@@ -974,6 +976,293 @@ function exportCSV() {
   a.download = `malla_${CATALOG[sel].name.replace(/\s/g,'_')}.csv`; a.click();
 }
 
+
+/* ── EXPORT XLSX ── */
+function exportXLSX() {
+  if (!sel) return alert('Selecciona una tienda primero.');
+  const tienda = CATALOG[sel];
+  const ei = activeEmps(sel);
+  const df = document.getElementById('dfrom').value, dt = document.getElementById('dto').value;
+  const calendar = buildCalendar(df, dt);
+  const et = calcTotals(sel, ei, df, dt);
+
+  // Compute weekly extras per employee
+  const empWeeklyExor = {};
+  ei.forEach(e => { empWeeklyExor[e] = 0; });
+  calendar.forEach(week => {
+    const wt = {};
+    ei.forEach(e => { wt[e] = 0; });
+    week.days.forEach(day => {
+      ei.forEach(e => {
+        const emp = getEmp(sel, day.date, e);
+        if (!getSpecKey(emp.ap)) wt[e] += n(emp.hlOrd);
+      });
+    });
+    ei.forEach(e => { empWeeklyExor[e] += Math.max(0, wt[e] - getContract(sel, e)); });
+  });
+
+  const wb = XLSX.utils.book_new();
+  const rows = [];
+
+  // ── TITLE ROWS ──
+  rows.push([`MALLA HORARIA — ${tienda.name}`]);
+  rows.push([`CECO ${sel} · ${tienda.region} · Período: ${fmtDisplay(df)} al ${fmtDisplay(dt)}`]);
+  rows.push([`Generado: ${new Date().toLocaleDateString('es-CO')}`]);
+  rows.push([]); // blank
+
+  // ── HEADER ROW 1 (merged employee names) ──
+  const hdr1 = ['Sem.', 'Día', 'Fecha'];
+  ei.forEach(e => {
+    const nm = getEmpName(sel, e);
+    const ct = getContract(sel, e);
+    hdr1.push(`${nm} (${ct}h)`);
+    for (let i = 0; i < 7; i++) hdr1.push('');
+  });
+  rows.push(hdr1);
+
+  // ── HEADER ROW 2 (sub-columns) ──
+  const hdr2 = ['', '', ''];
+  ei.forEach(() => {
+    hdr2.push('Horario','HL','RN Ord','RN Fes','Dom+Comp','H.Fest','Ex.Ord','Ex.Fes');
+  });
+  rows.push(hdr2);
+
+  const hdrStartRow = 4; // 0-indexed row where hdr1 is
+
+  // ── DATA ROWS ──
+  calendar.forEach(week => {
+    // Week separator
+    const wRow = [`S${week.weekNum}`, '', ''];
+    ei.forEach(() => { for (let i = 0; i < 8; i++) wRow.push(''); });
+    rows.push(wRow);
+
+    // Day rows
+    week.days.forEach(day => {
+      const festLabel = isFestivo(day.date) ? ' (F)' : '';
+      const domLabel = day.isDom ? ' (D)' : '';
+      const cols = [`S${week.weekNum}`, day.label, fmtDisplay(day.date) + festLabel + domLabel];
+      ei.forEach(e => {
+        const emp = getEmp(sel, day.date, e);
+        const sk = getSpecKey(emp.ap);
+        if (sk) {
+          cols.push(sk, '', '', '', '', '', '', '');
+        } else {
+          const horario = (emp.ap && emp.ci) ? `${emp.ap} - ${emp.ci}` : '';
+          const rh = resolvedHours(sel, e, day.date);
+          cols.push(
+            horario,
+            n(emp.hl) || '',
+            n(emp.rn) || '',
+            n(emp.rnd) || '',
+            rh.hdom || '',
+            rh.hfes || '',
+            '', ''
+          );
+        }
+      });
+      rows.push(cols);
+    });
+
+    // Subtotal row
+    const subRow = ['', '', `Subtotal S${week.weekNum}`];
+    const wTot = {};
+    ei.forEach(e => { wTot[e] = {hl:0,hlOrd:0,rn:0,rnd:0,hdom:0,hfes:0}; });
+    week.days.forEach(day => {
+      ei.forEach(e => {
+        const emp = getEmp(sel, day.date, e);
+        if (getSpecKey(emp.ap)) return;
+        const rh = resolvedHours(sel, e, day.date);
+        wTot[e].hl += n(emp.hl); wTot[e].hlOrd += n(emp.hlOrd);
+        wTot[e].rn += n(emp.rn); wTot[e].rnd += n(emp.rnd);
+        wTot[e].hdom += rh.hdom; wTot[e].hfes += rh.hfes;
+      });
+    });
+    ei.forEach(e => {
+      const w = wTot[e];
+      const exor = Math.max(0, (w.hlOrd || 0) - getContract(sel, e));
+      subRow.push('', w.hl||'', w.rn||'', w.rnd||'', w.hdom||'', w.hfes||'', exor||'', '');
+    });
+    rows.push(subRow);
+  });
+
+  // ── GRAND TOTAL ROW ──
+  const totRow = ['', '', 'TOTAL'];
+  ei.forEach(e => {
+    totRow.push('', et[e].hl||0, et[e].rn||0, et[e].rnd||0, et[e].hdom||0, et[e].hfes||0, empWeeklyExor[e]||0, 0);
+  });
+  rows.push(totRow);
+
+  // ── BUILD SHEET ──
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+
+  // Column widths
+  const colW = [{wch:6},{wch:5},{wch:14}];
+  ei.forEach(() => {
+    colW.push({wch:14},{wch:5},{wch:7},{wch:7},{wch:9},{wch:7},{wch:7},{wch:7});
+  });
+  ws['!cols'] = colW;
+
+  // Merge cells: title rows
+  const totalCols = 3 + ei.length * 8;
+  ws['!merges'] = [
+    {s:{r:0,c:0},e:{r:0,c:totalCols-1}},
+    {s:{r:1,c:0},e:{r:1,c:totalCols-1}},
+    {s:{r:2,c:0},e:{r:2,c:totalCols-1}},
+  ];
+  // Merge employee name headers (row index = hdrStartRow)
+  ei.forEach((e, idx) => {
+    const startC = 3 + idx * 8;
+    ws['!merges'].push({s:{r:hdrStartRow,c:startC},e:{r:hdrStartRow,c:startC+7}});
+  });
+
+  // ── STYLING ──
+  const GREEN_BG = {rgb:'1C7C54'};
+  const GREEN_DARK = {rgb:'145C3E'};
+  const WHITE_FT = {rgb:'FFFFFF'};
+  const CREAM_BG = {rgb:'FFFDF0'};
+  const FEST_BG = {rgb:'FFF8E0'};
+  const SUB_BG = {rgb:'E8F7F0'};
+  const BORDER_THIN = {style:'thin', color:{rgb:'D0D8D4'}};
+  const borders = {top:BORDER_THIN,bottom:BORDER_THIN,left:BORDER_THIN,right:BORDER_THIN};
+
+  // Apply styles
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let R = range.s.r; R <= range.e.r; R++) {
+    for (let C = range.s.c; C <= range.e.c; C++) {
+      const addr = XLSX.utils.encode_cell({r:R,c:C});
+      if (!ws[addr]) ws[addr] = {v:'', t:'s'};
+      if (!ws[addr].s) ws[addr].s = {};
+
+      // Base font
+      ws[addr].s.font = {name:'Arial', sz:10};
+      ws[addr].s.border = borders;
+      ws[addr].s.alignment = {horizontal:'center', vertical:'center'};
+
+      // Title rows (0-2)
+      if (R === 0) {
+        ws[addr].s.font = {name:'Arial', sz:14, bold:true, color:WHITE_FT};
+        ws[addr].s.fill = {fgColor:GREEN_BG};
+        ws[addr].s.alignment = {horizontal:'left', vertical:'center'};
+      } else if (R === 1) {
+        ws[addr].s.font = {name:'Arial', sz:10, color:{rgb:'6B8077'}};
+        ws[addr].s.alignment = {horizontal:'left'};
+      } else if (R === 2) {
+        ws[addr].s.font = {name:'Arial', sz:9, italic:true, color:{rgb:'999999'}};
+        ws[addr].s.alignment = {horizontal:'left'};
+      }
+
+      // Header row 1 (employee names - row 4)
+      if (R === hdrStartRow && C >= 3) {
+        ws[addr].s.font = {name:'Arial', sz:11, bold:true, color:WHITE_FT};
+        ws[addr].s.fill = {fgColor:GREEN_BG};
+      }
+
+      // Header row 2 (sub-columns - row 5)
+      if (R === hdrStartRow + 1) {
+        ws[addr].s.font = {name:'Arial', sz:9, bold:true, color:{rgb:'6B8077'}};
+        ws[addr].s.fill = {fgColor:{rgb:'F7FAF8'}};
+      }
+
+      // Data rows: detect festivo/domingo/subtotal/total/week-header
+      if (R > hdrStartRow + 1) {
+        const rowData = rows[R];
+        if (!rowData) continue;
+        const dateCell = String(rowData[2] || '');
+        const dayCell = String(rowData[1] || '');
+
+        // Week header rows
+        if (rowData[0] && !rowData[1] && !rowData[2]) {
+          ws[addr].s.font = {name:'Arial', sz:10, bold:true, color:{rgb:'1C7C54'}};
+          ws[addr].s.fill = {fgColor:{rgb:'ECF8F3'}};
+        }
+        // Festivo rows
+        else if (dateCell.includes('(F)')) {
+          ws[addr].s.fill = {fgColor:FEST_BG};
+        }
+        // Domingo rows
+        else if (dateCell.includes('(D)')) {
+          ws[addr].s.fill = {fgColor:CREAM_BG};
+        }
+        // Subtotal rows
+        else if (dateCell.includes('Subtotal')) {
+          ws[addr].s.font = {name:'Arial', sz:10, bold:true, color:{rgb:'145C3E'}};
+          ws[addr].s.fill = {fgColor:SUB_BG};
+        }
+        // TOTAL row
+        else if (dateCell === 'TOTAL') {
+          ws[addr].s.font = {name:'Arial', sz:11, bold:true, color:WHITE_FT};
+          ws[addr].s.fill = {fgColor:GREEN_DARK};
+        }
+      }
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws, tienda.name.slice(0, 31));
+
+  // ── RESUMEN POR ASESOR (2nd sheet) ──
+  const sumRows = [];
+  sumRows.push([`RESUMEN — ${tienda.name}`]);
+  sumRows.push([`Período: ${fmtDisplay(df)} al ${fmtDisplay(dt)}`]);
+  sumRows.push([]);
+  sumRows.push(['Asesor','Contrato','HL Total','RN Ord','RN Fes','Dom+Comp','H.Fest','Ex.Ord','Ex.Fes']);
+  ei.forEach(e => {
+    sumRows.push([
+      getEmpName(sel, e),
+      `${getContract(sel, e)}h`,
+      et[e].hl||0, et[e].rn||0, et[e].rnd||0,
+      et[e].hdom||0, et[e].hfes||0,
+      empWeeklyExor[e]||0, 0
+    ]);
+  });
+  // Store total
+  const st = storeTot(sel, ei, df, dt);
+  const totalExor = ei.reduce((s,e)=>s+empWeeklyExor[e],0);
+  sumRows.push(['TOTAL','', st.hl, st.rn, st.rnd, st.hdom, st.hfes, totalExor, 0]);
+
+  const ws2 = XLSX.utils.aoa_to_sheet(sumRows);
+  ws2['!cols'] = [{wch:22},{wch:10},{wch:9},{wch:9},{wch:9},{wch:11},{wch:9},{wch:9},{wch:9}];
+  ws2['!merges'] = [
+    {s:{r:0,c:0},e:{r:0,c:8}},
+    {s:{r:1,c:0},e:{r:1,c:8}},
+  ];
+
+  // Style summary sheet
+  const range2 = XLSX.utils.decode_range(ws2['!ref']);
+  for (let R = range2.s.r; R <= range2.e.r; R++) {
+    for (let C = range2.s.c; C <= range2.e.c; C++) {
+      const addr = XLSX.utils.encode_cell({r:R,c:C});
+      if (!ws2[addr]) ws2[addr] = {v:'', t:'s'};
+      if (!ws2[addr].s) ws2[addr].s = {};
+      ws2[addr].s.font = {name:'Arial', sz:10};
+      ws2[addr].s.border = borders;
+      ws2[addr].s.alignment = {horizontal:'center', vertical:'center'};
+
+      if (R === 0) {
+        ws2[addr].s.font = {name:'Arial', sz:14, bold:true, color:WHITE_FT};
+        ws2[addr].s.fill = {fgColor:GREEN_BG};
+        ws2[addr].s.alignment = {horizontal:'left'};
+      } else if (R === 1) {
+        ws2[addr].s.font = {name:'Arial', sz:10, color:{rgb:'6B8077'}};
+        ws2[addr].s.alignment = {horizontal:'left'};
+      } else if (R === 3) {
+        ws2[addr].s.font = {name:'Arial', sz:10, bold:true, color:WHITE_FT};
+        ws2[addr].s.fill = {fgColor:GREEN_BG};
+      } else if (R === range2.e.r) {
+        ws2[addr].s.font = {name:'Arial', sz:11, bold:true, color:WHITE_FT};
+        ws2[addr].s.fill = {fgColor:GREEN_DARK};
+      } else if (R > 3) {
+        ws2[addr].s.fill = {fgColor:{rgb: R%2===0 ? 'F7FAF8' : 'FFFFFF'}};
+        if (C === 0) ws2[addr].s.alignment = {horizontal:'left'};
+      }
+    }
+  }
+
+  XLSX.utils.book_append_sheet(wb, ws2, 'Resumen');
+
+  // ── DOWNLOAD ──
+  const fileName = `Malla_${tienda.name.replace(/\s/g,'_')}_${df}_a_${dt}.xlsx`;
+  XLSX.writeFile(wb, fileName, {bookSST:true});
+}
 
 // ── TIME POPUP ──
 let _tpCtx = null;
