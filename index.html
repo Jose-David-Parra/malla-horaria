@@ -226,6 +226,7 @@ tr.tot td.s0,tr.tot td.s1{background:var(--green-d);color:#fff;font-size:12.5px}
         <button class="vb" id="btnA" onclick="setView('asesores')">👤 Por asesor</button>
       </div>
       <button class="ebtn" onclick="exportCSV()">⬇ CSV</button>
+      <button class="ebtn" style="background:#0891b2" onclick="recalcAll()" title="Recalcular todas las horas guardadas con las reglas actuales">🔄 Recalcular</button>
     </div>
   </div>
   <div class="content" id="cnt">
@@ -1151,6 +1152,37 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeMenu(
   document.getElementById('dfrom').value = `${y}-${m}-01`;
   document.getElementById('dto').value   = `${y}-${m}-${String(lastDay).padStart(2,'0')}`;
 })();
+
+
+// Recalculate all stored schedule data with current rules
+function recalcAll() {
+  if (!sel) return;
+  if (!confirm('¿Recalcular todas las horas de esta tienda con las reglas actuales? (RN desde 19h, descuento almuerzo, etc.)')) return;
+  const tiendaData = SCHED[sel];
+  if (!tiendaData) { alert('No hay datos guardados para esta tienda.'); return; }
+  let count = 0;
+  Object.entries(tiendaData).forEach(([date, dayData]) => {
+    Object.entries(dayData).forEach(([empIdx, emp]) => {
+      if (!emp || !emp.ap || !emp.ci) return;
+      if (getSpecKey(emp.ap)) return; // skip special days
+      const calc = calcHours(emp.ap, emp.ci, date);
+      if (!calc) return;
+      emp.hl    = calc.hl;
+      emp.hlOrd = calc.hlOrd;
+      emp.rn    = calc.rn  > 0 ? calc.rn  : '';
+      emp.rnd   = calc.rnd > 0 ? calc.rnd : '';
+      emp.esDomingo = calc.esDomingo || false;
+      emp.esFestivo = calc.esFestivo || false;
+      emp.hdom  = calc.esDomingo ? calc.hl : '';
+      emp.hfes  = calc.esFestivo ? calc.hl : '';
+      emp.hexor = ''; emp.hexdf = '';
+      count++;
+    });
+  });
+  render();
+  scheduleSave();
+  alert(`✓ ${count} turnos recalculados con las reglas actuales.`);
+}
 
 
 buildSB();
