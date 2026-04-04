@@ -154,10 +154,10 @@ tr.tot td.s0,tr.tot td.s1{background:var(--green-d);color:#fff;font-size:12.5px}
 .ech{background:var(--green-xl);padding:9px 13px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border)}
 .eav{width:30px;height:30px;border-radius:50%;background:var(--green);color:#fff;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .ecn{font-size:12px;font-weight:700;color:var(--green-d)}.ecr{font-size:9.5px;color:var(--muted)}
-.ekp{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border)}
+.ekp{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border)}
 .ek{background:#fff;padding:8px 6px;text-align:center}
 .ekl{font-size:8px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);font-weight:600;margin-bottom:1px}
-.ekv{font-size:17px;font-weight:700;font-family:Consolas,monospace}
+.ekv{font-size:15px;font-weight:700;font-family:Consolas,monospace}
 .edays{padding:9px 13px;max-height:240px;overflow-y:auto}
 .edr{display:flex;align-items:center;gap:7px;padding:3px 0;border-bottom:1px solid #f2f5f3;font-size:10.5px}
 .edr:last-child{border-bottom:none}
@@ -870,6 +870,23 @@ function renderEmp(empIdx, df, dt) {
   const calendar = buildCalendar(df, dt);
   const allDays = calendar.flatMap(w => w.days);
 
+  // Calculate weekly ExOr per employee
+  const empExor = {};
+  empIdx.forEach(e => { empExor[e] = 0; });
+  calendar.forEach(week => {
+    const wt = {};
+    empIdx.forEach(e => { wt[e] = 0; });
+    week.days.forEach(day => {
+      empIdx.forEach(e => {
+        const emp = getEmp(sel, day.date, e);
+        if (!getSpecKey(emp.ap)) wt[e] += n(emp.hlOrd);
+      });
+    });
+    empIdx.forEach(e => {
+      empExor[e] += Math.max(0, wt[e] - getContract(sel, e));
+    });
+  });
+
   return `<div class="ecg">${empIdx.map(e => {
     const name = getEmpName(sel, e);
     const t = et[e];
@@ -897,9 +914,12 @@ function renderEmp(empIdx, df, dt) {
       <div class="ech"><div class="eav">${ini}</div><div><div class="ecn">${name}</div><div class="ecr">Asesor</div></div></div>
       <div class="ekp">
         <div class="ek"><div class="ekl">HL</div><div class="ekv c-hl">${t.hl}</div></div>
-        <div class="ek"><div class="ekl">RN</div><div class="ekv c-rn">${t.rn}</div></div>
-        <div class="ek"><div class="ekl">Extras</div><div class="ekv c-hexor">${t.hexor+t.hexdf}</div></div>
-        <div class="ek"><div class="ekl">Dom+Fes</div><div class="ekv c-hdom">${t.hdom+t.hfes}</div></div>
+        <div class="ek"><div class="ekl">RN Ord</div><div class="ekv c-rn">${t.rn}</div></div>
+        <div class="ek"><div class="ekl">RN Fes</div><div class="ekv c-rnd">${t.rnd}</div></div>
+        <div class="ek"><div class="ekl">Dom+Comp</div><div class="ekv c-hdom">${t.hdom}</div></div>
+        <div class="ek"><div class="ekl">H.Fest</div><div class="ekv c-hfes">${t.hfes}</div></div>
+        <div class="ek"><div class="ekl">Ex.Ord</div><div class="ekv c-hexor">${empExor[e]||0}</div></div>
+        <div class="ek"><div class="ekl">Ex.Fes</div><div class="ekv c-hexdf">0</div></div>
       </div>
       <div class="edays">${dH||'<div style="padding:12px;color:var(--muted);font-size:10.5px;text-align:center">Sin actividad en el período</div>'}</div>
     </div>`;
